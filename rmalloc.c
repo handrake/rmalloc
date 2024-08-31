@@ -27,14 +27,15 @@ int find_free_block(unsigned int **p, size_t size) {
     unsigned char *p_block_head = p_arena_start;
     unsigned char *p_block_tail = NULL;
     size_t block_size;
+    size_t new_size = size + 2 * sizeof(unsigned int);
 
     for (int i = 0; p_block_head < p_arena_end; i++) {
         block_size = (*(unsigned int *)p_block_head) >> 3;
 
         if ((*(unsigned int *)p_block_head & 1) == 0 && block_size - 2 * sizeof(unsigned int) >= size) {
-            if (block_size - size - 2 * sizeof(unsigned int) > MIN_BLOCK_SIZE) {
-                block_init(p_block_head + block_size, block_size - size - 2 * sizeof(unsigned int));
-                *(unsigned int *)p_block_head = ((size + 2 * sizeof(unsigned int)) << 3);
+            if (block_size - new_size > MIN_BLOCK_SIZE) {
+                block_init(p_block_head + block_size, block_size - new_size);
+                *(unsigned int *)p_block_head = new_size << 3;
             }
             *(unsigned int *)p_block_head |= 1;
             *p = (unsigned int *)(p_block_head + sizeof(unsigned int));
