@@ -10,6 +10,18 @@
 static unsigned char *p_arena_start = NULL;
 static unsigned char *p_arena_end = NULL;
 
+unsigned int next_power_of_2(unsigned int v) {
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v++;
+
+    return v;
+}
+
 int block_init(unsigned char *p_block_head, size_t size) {
     if (p_block_head == NULL || size < MIN_BLOCK_SIZE || size > MAX_BLOCK_SIZE) {
         return RMALLOC_RANGE;
@@ -27,7 +39,7 @@ int find_free_block(unsigned int **p, size_t size) {
     unsigned char *p_block_head = p_arena_start;
     unsigned char *p_block_tail = NULL;
     size_t block_size;
-    size_t new_size = size + 2 * sizeof(unsigned int);
+    size_t new_size = next_power_of_2(size + 2 * sizeof(unsigned int));
 
     for (int i = 0; p_block_head < p_arena_end; i++) {
         block_size = (*(unsigned int *)p_block_head) >> 3;
