@@ -15,7 +15,7 @@
 #define SET_BLOCK_USED(p)               (*(unsigned int *)p |= 1)
 #define SET_BLOCK_FREE(p)               (*(unsigned int *)p &= 0xFFFFFFF8)
 #define GET_BLOCK_META(p)               (*(unsigned int *)p)
-#define SET_BLOCK_META(p1, p2)          (*(unsigned int *)p1 = GET_BLOCK_META(p2))
+#define COPY_BLOCK_META(p1, p2)         (*(unsigned int *)p1 = GET_BLOCK_META(p2))
 #define GET_RET_ADDR(head)              ((unsigned int *)(head + sizeof(unsigned int)))
 #define MARK_BLOCK_BOUNDARY(p)          (*(unsigned int *)p |= 2)
 #define IS_BLOCK_BOUNDARY(p)            (*(unsigned int *)p & 2)
@@ -77,7 +77,7 @@ int allocate_block_if_available(unsigned int **p, unsigned char *p_block_head, s
         *p = GET_RET_ADDR(p_block_head);
 
         p_block_tail = GET_BLOCK_TAIL(p_block_head, GET_BLOCK_SIZE(p_block_head));
-        SET_BLOCK_META(p_block_tail, p_block_head);
+        COPY_BLOCK_META(p_block_tail, p_block_head);
 
         p_last_allocated_block_start = p_block_head;
 
