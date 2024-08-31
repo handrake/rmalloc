@@ -100,7 +100,7 @@ int find_free_block(unsigned int **p, size_t size) {
         p_block_head += GET_BLOCK_SIZE(p_block_head);
     }
 
-    if (p_last_allocated_block_start == NULL) {
+    if (p_last_allocated_block_start == NULL || p_last_allocated_block_start == p_arena_start) {
         return RMALLOC_NOMEM;
     }
 
