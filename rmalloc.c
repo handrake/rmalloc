@@ -133,8 +133,8 @@ void *mm_malloc(size_t size) {
     return NULL;
 }
 
-void mm_free(unsigned int *ptr) {
-    unsigned int *p_block_head = ptr - 1;
+void mm_free(unsigned char *ptr) {
+    unsigned char *p_block_head = ptr - sizeof(unsigned int);
 
     if (IS_FREE_BLOCK(p_block_head)) {
         return;
@@ -156,5 +156,5 @@ void rfree(void *ptr) {
         return;
     }
 
-    mm_free((unsigned int *)ptr);
+    mm_free((unsigned char *)ptr);
 }
