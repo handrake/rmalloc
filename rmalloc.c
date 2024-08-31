@@ -16,6 +16,7 @@
 #define SET_BLOCK_FREE(p)               (*(unsigned int *)p &= 0xFFFFFFF8)
 #define GET_BLOCK_META(p)               (*(unsigned int *)p)
 #define SET_BLOCK_META(p1, p2)          (*(unsigned int *)p1 = GET_BLOCK_META(p2))
+#define GET_RET_ADDR(head)              ((unsigned int *)(head + sizeof(unsigned int)))
 
 static unsigned char *p_arena_start = NULL;
 static unsigned char *p_arena_end = NULL;
@@ -58,7 +59,7 @@ int allocate_block_if_available(unsigned int **p, unsigned char *p_block_head, s
             SET_BLOCK_SIZE(p_block_head, size);
         }
         SET_BLOCK_USED(p_block_head);
-        *p = (unsigned int *)(p_block_head + sizeof(unsigned int));
+        *p = GET_RET_ADDR(p_block_head);
 
         p_block_tail = GET_BLOCK_TAIL(p_block_head, GET_BLOCK_SIZE(p_block_head));
         SET_BLOCK_META(p_block_tail, p_block_head);
