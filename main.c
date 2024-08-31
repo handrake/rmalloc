@@ -2,7 +2,7 @@
 #include "rmalloc.h"
 
 int main() {
-    unsigned int *p = (unsigned int *) 100;
+    unsigned char *p = (unsigned char *) 100;
 
     for (int i = 0; p != NULL; i++) {
         p = rmalloc(4000);

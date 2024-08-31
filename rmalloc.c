@@ -7,41 +7,40 @@
 #define MIN_BLOCK_SIZE      32
 #define MAX_BLOCK_SIZE      4096
 
-static unsigned int *p_arena_start = NULL;
-static unsigned int *p_arena_end = NULL;
+static unsigned char *p_arena_start = NULL;
+static unsigned char *p_arena_end = NULL;
 
-int block_init(unsigned int *p_block_head, size_t size) {
+int block_init(unsigned char *p_block_head, size_t size) {
     if (p_block_head == NULL || size < MIN_BLOCK_SIZE || size > MAX_BLOCK_SIZE) {
         return RMALLOC_RANGE;
     }
 
-    unsigned int *p_block_tail = p_block_head + size - 1;
+    unsigned char *p_block_tail = p_block_head + size - sizeof(unsigned int);
 
-    *p_block_head = size << 3;
-    *p_block_tail = size << 3;
+    *(unsigned int *)p_block_head = size << 3;
+    *(unsigned int *)p_block_tail = size << 3;
 
     return RMALLOC_OK;
 }
 
 int find_free_block(unsigned int **p, size_t size) {
-    unsigned int *p_block_head = p_arena_start;
-    unsigned int *p_block_tail = NULL;
+    unsigned char *p_block_head = p_arena_start;
+    unsigned char *p_block_tail = NULL;
     size_t block_size;
 
     for (int i = 0; p_block_head < p_arena_end; i++) {
-        block_size = (*p_block_head) >> 3;
+        block_size = (*(unsigned int *)p_block_head) >> 3;
 
-        if ((*p_block_head & 1) == 0 && block_size - 2 >= size) {
-            *p_block_head |= 1;
-            *p = p_block_head + 1;
-
-            if (block_size - size - 2 > MIN_BLOCK_SIZE) {
-                block_init(p_block_head + block_size, block_size - size - 2);
-                *p_block_head = ((size + 2) << 3) + 1;
+        if ((*(unsigned int *)p_block_head & 1) == 0 && block_size - 2 * sizeof(unsigned int) >= size) {
+            if (block_size - size - 2 * sizeof(unsigned int) > MIN_BLOCK_SIZE) {
+                block_init(p_block_head + block_size, block_size - size - 2 * sizeof(unsigned int));
+                *(unsigned int *)p_block_head = ((size + 2 * sizeof(unsigned int)) << 3);
             }
+            *(unsigned int *)p_block_head |= 1;
+            *p = (unsigned int *)(p_block_head + sizeof(unsigned int));
 
-            p_block_tail = p_block_head + block_size - 1;
-            *p_block_tail = *p_block_head;
+            p_block_tail = p_block_head + (*(unsigned int *)p_block_head >> 3) - sizeof(unsigned int);
+            *(unsigned int *)p_block_tail = *(unsigned int *)p_block_head;
 
             return RMALLOC_OK;
         }
@@ -78,7 +77,7 @@ void *mm_malloc(size_t size) {
 void mm_free(unsigned int *ptr) {
     unsigned int *p_block_head = ptr - 1;
 
-    if ((*p_block_head & 1) == 0) {
+    if ((*(unsigned int *)p_block_head & 1) == 0) {
         return;
     }
 
