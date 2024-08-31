@@ -10,6 +10,7 @@
 
 static unsigned char *p_arena_start = NULL;
 static unsigned char *p_arena_end = NULL;
+static size_t arena_size = 0;
 
 unsigned int next_power_of_2(unsigned int v) {
     v--;
@@ -67,13 +68,19 @@ int find_free_block(unsigned int **p, size_t size) {
 
 void mm_init() {
     size_t block_size = MAX_BLOCK_SIZE;
-    size_t arena_size = DEFAULT_ARENA_SIZE;
+    arena_size = DEFAULT_ARENA_SIZE;
 
     p_arena_start = mmap(NULL, arena_size * sizeof(int), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     p_arena_end = p_arena_start + arena_size;
 
     for (int i = 0; i < arena_size / block_size - 1; i++) {
         block_init(p_arena_start + i * block_size, block_size);
+    }
+}
+
+void mm_exit() {
+    if (p_arena_start != NULL) {
+        munmap(p_arena_start, arena_size);
     }
 }
 
