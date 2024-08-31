@@ -6,6 +6,7 @@
 #define DEFAULT_ARENA_SIZE  1048576
 #define MIN_BLOCK_SIZE      32
 #define MAX_BLOCK_SIZE      4096
+#define BLOCK_METADATA_SIZE (2*sizeof(unsigned int))
 
 static unsigned char *p_arena_start = NULL;
 static unsigned char *p_arena_end = NULL;
@@ -39,12 +40,12 @@ int find_free_block(unsigned int **p, size_t size) {
     unsigned char *p_block_head = p_arena_start;
     unsigned char *p_block_tail = NULL;
     size_t block_size;
-    size_t new_size = next_power_of_2(size + 2 * sizeof(unsigned int));
+    size_t new_size = next_power_of_2(size + BLOCK_METADATA_SIZE);
 
     for (int i = 0; p_block_head < p_arena_end; i++) {
         block_size = (*(unsigned int *)p_block_head) >> 3;
 
-        if ((*(unsigned int *)p_block_head & 1) == 0 && block_size - 2 * sizeof(unsigned int) >= size) {
+        if ((*(unsigned int *)p_block_head & 1) == 0 && block_size - BLOCK_METADATA_SIZE >= size) {
             if (block_size - new_size > MIN_BLOCK_SIZE) {
                 block_init(p_block_head + block_size, block_size - new_size);
                 *(unsigned int *)p_block_head = new_size << 3;
