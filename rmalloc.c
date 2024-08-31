@@ -55,7 +55,7 @@ int allocate_block_if_available(unsigned int **p, unsigned char *p_block_head, s
 
     if (IS_FREE_BLOCK(p_block_head) && block_size >= size) {
         if (block_size - size > MIN_BLOCK_SIZE) {
-            block_init(p_block_head + block_size, block_size - size);
+            block_init(p_block_head + size, block_size - size);
             SET_BLOCK_SIZE(p_block_head, size);
         }
         SET_BLOCK_USED(p_block_head);
