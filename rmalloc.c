@@ -73,7 +73,7 @@ void mm_init() {
     p_arena_start = mmap(NULL, arena_size * sizeof(int), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     p_arena_end = p_arena_start + arena_size;
 
-    for (int i = 0; i < arena_size / block_size - 1; i++) {
+    for (int i = 0; i < arena_size / block_size; i++) {
         block_init(p_arena_start + i * block_size, block_size);
     }
 }
