@@ -17,6 +17,16 @@
 #define GET_BLOCK_META(p)               (*(unsigned int *)p)
 #define SET_BLOCK_META(p1, p2)          (*(unsigned int *)p1 = GET_BLOCK_META(p2))
 #define GET_RET_ADDR(head)              ((unsigned int *)(head + sizeof(unsigned int)))
+#define MARK_BLOCK_BOUNDARY(p)          (*(unsigned int *)p |= 2)
+#define IS_BLOCK_BOUNDARY(p)            (*(unsigned int *)p & 2)
+#define GET_NEXT_BLOCK(head)            (head + GET_BLOCK_SIZE(p))
+#define GET_PREV_BLOCK(head)            (head - GET_BLOCK_SIZE(GET_PREV_BLOCK_TAIL(head)))
+
+typedef enum COALESCE_DIRECTION {
+    NEXT,
+    PREV,
+    BOTH,
+} COALESCE_DIRECTION;
 
 static unsigned char *p_arena_start = NULL;
 static unsigned char *p_arena_end = NULL;
@@ -36,8 +46,8 @@ unsigned int next_power_of_2(unsigned int v) {
     return v;
 }
 
-int block_init(unsigned char *p_block_head, size_t size) {
-    if (p_block_head == NULL || size < MIN_BLOCK_SIZE || size > MAX_BLOCK_SIZE) {
+int block_init(unsigned char *p_block_head, size_t size, int mark_boundary) {
+    if (p_block_head == NULL || size < MIN_BLOCK_SIZE || size > MAX_BLOCK_SIZE || p_block_head + size > p_arena_end) {
         return RMALLOC_RANGE;
     }
 
@@ -45,6 +55,11 @@ int block_init(unsigned char *p_block_head, size_t size) {
 
     SET_BLOCK_SIZE(p_block_head, size);
     SET_BLOCK_SIZE(p_block_tail, size);
+
+    if (mark_boundary) {
+        MARK_BLOCK_BOUNDARY(p_block_head);
+        MARK_BLOCK_BOUNDARY(p_block_tail);
+    }
 
     return RMALLOC_OK;
 }
@@ -55,7 +70,7 @@ int allocate_block_if_available(unsigned int **p, unsigned char *p_block_head, s
 
     if (IS_FREE_BLOCK(p_block_head) && block_size >= size) {
         if (block_size - size > MIN_BLOCK_SIZE) {
-            block_init(p_block_head + size, block_size - size);
+            block_init(p_block_head + size, block_size - size, 0);
             SET_BLOCK_SIZE(p_block_head, size);
         }
         SET_BLOCK_USED(p_block_head);
@@ -112,13 +127,59 @@ void mm_init() {
     p_arena_end = p_arena_start + arena_size;
 
     for (int i = 0; i < arena_size / block_size; i++) {
-        block_init(p_arena_start + i * block_size, block_size);
+        block_init(p_arena_start + i * block_size, block_size, 1);
     }
 }
 
 void mm_exit() {
     if (p_arena_start != NULL) {
         munmap(p_arena_start, arena_size);
+    }
+}
+
+void mm_coalesce(unsigned char *p, COALESCE_DIRECTION direction) {
+    int rc;
+
+    if (p < p_arena_start || p >= p_arena_end || !IS_FREE_BLOCK(p)) {
+        return;
+    }
+
+    unsigned char *p_next_block_head = NULL;
+    unsigned char *p_prev_block_head = NULL;
+
+    switch (direction) {
+        case NEXT:
+            p_next_block_head = GET_NEXT_BLOCK(p);
+            break;
+        case PREV:
+            p_prev_block_head = GET_PREV_BLOCK(p);
+            break;
+        case BOTH:
+            p_next_block_head = GET_NEXT_BLOCK(p);
+            p_prev_block_head = GET_PREV_BLOCK(p);
+            break;
+    }
+
+    if (p_arena_end <= p_next_block_head || (p_next_block_head && IS_BLOCK_BOUNDARY(p_next_block_head)) || p == p_next_block_head) {
+        p_next_block_head = NULL;
+    }
+
+    if (p_prev_block_head < p_arena_start || (p_prev_block_head && IS_BLOCK_BOUNDARY(p_prev_block_head)) || p == p_prev_block_head) {
+        p_prev_block_head = NULL;
+    }
+
+    if (p_next_block_head) {
+        rc = block_init(p, GET_BLOCK_SIZE(p) + GET_BLOCK_SIZE(p_next_block_head), 0);
+        if (rc == RMALLOC_OK) {
+            mm_coalesce(p, NEXT);
+        }
+    }
+
+    if (p_prev_block_head) {
+        block_init(p_prev_block_head, GET_BLOCK_SIZE(p_prev_block_head) + GET_BLOCK_SIZE(p), 0);
+        if (rc == RMALLOC_OK) {
+            mm_coalesce(p_prev_block_head, PREV);
+        }
     }
 }
 
@@ -141,6 +202,7 @@ void mm_free(unsigned char *ptr) {
     }
 
     SET_BLOCK_FREE(p_block_head);
+    mm_coalesce(p_block_head, BOTH);
 }
 
 void *rmalloc(size_t size) {
