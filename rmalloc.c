@@ -31,6 +31,7 @@ typedef enum COALESCE_DIRECTION {
 static unsigned char *p_arena_start = NULL;
 static unsigned char *p_arena_end = NULL;
 static size_t arena_size = 0;
+static size_t num_used_blocks = 0;
 
 static unsigned char *p_last_allocated_block_start = NULL;
 
@@ -80,6 +81,7 @@ int allocate_block_if_available(unsigned int **p, unsigned char *p_block_head, s
         COPY_BLOCK_META(p_block_tail, p_block_head);
 
         p_last_allocated_block_start = p_block_head;
+        num_used_blocks++;
 
         return RMALLOC_OK;
     }
@@ -134,6 +136,10 @@ void mm_init() {
 void mm_exit() {
     if (p_arena_start != NULL) {
         munmap(p_arena_start, arena_size);
+        p_arena_start = NULL;
+        p_arena_end = NULL;
+        p_last_allocated_block_start = NULL;
+        arena_size = 0;
     }
 }
 
@@ -201,6 +207,13 @@ void mm_free(unsigned char *ptr) {
     unsigned char *p_block_head = ptr - sizeof(unsigned int);
 
     if (IS_FREE_BLOCK(p_block_head)) {
+        return;
+    }
+
+    num_used_blocks--;
+
+    if (num_used_blocks == 0) {
+        mm_exit();
         return;
     }
 
