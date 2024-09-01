@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <sys/mman.h>
 
 #include "rmalloc.h"
@@ -193,7 +194,7 @@ void mm_coalesce(unsigned char *p, COALESCE_DIRECTION direction) {
 }
 
 void *mm_malloc(size_t size) {
-    unsigned long addr;
+    uintptr_t addr;
     int rc = find_free_block((unsigned int **) &addr, size);
 
     if (rc == RMALLOC_OK) {
