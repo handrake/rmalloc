@@ -13,7 +13,7 @@
 #define GET_PREV_BLOCK_TAIL(head)       (head - sizeof(unsigned int))
 #define IS_FREE_BLOCK(p)                ((*(unsigned int *)p & 1) == 0)
 #define SET_BLOCK_USED(p)               (*(unsigned int *)p |= 1)
-#define SET_BLOCK_FREE(p)               (*(unsigned int *)p &= 0xFFFFFFF8)
+#define SET_BLOCK_FREE(p)               (*(unsigned int *)p &= 0xFFFFFFFA)
 #define GET_BLOCK_META(p)               (*(unsigned int *)p)
 #define COPY_BLOCK_META(p1, p2)         (*(unsigned int *)p1 = GET_BLOCK_META(p2))
 #define GET_RET_ADDR(head)              ((unsigned int *)(head + sizeof(unsigned int)))
@@ -139,6 +139,7 @@ void mm_exit() {
 
 void mm_coalesce(unsigned char *p, COALESCE_DIRECTION direction) {
     int rc;
+    size_t block_size;
 
     if (p < p_arena_start || p >= p_arena_end || !IS_FREE_BLOCK(p)) {
         return;
@@ -169,14 +170,16 @@ void mm_coalesce(unsigned char *p, COALESCE_DIRECTION direction) {
     }
 
     if (p_next_block_head) {
-        rc = block_init(p, GET_BLOCK_SIZE(p) + GET_BLOCK_SIZE(p_next_block_head), 0);
+        block_size = GET_BLOCK_SIZE(p) + GET_BLOCK_SIZE(p_next_block_head);
+        rc = block_init(p, block_size, 0);
         if (rc == RMALLOC_OK) {
             mm_coalesce(p, NEXT);
         }
     }
 
     if (p_prev_block_head) {
-        block_init(p_prev_block_head, GET_BLOCK_SIZE(p_prev_block_head) + GET_BLOCK_SIZE(p), 0);
+        block_size = GET_BLOCK_SIZE(p_prev_block_head) + GET_BLOCK_SIZE(p);
+        rc = block_init(p_prev_block_head, block_size, 0);
         if (rc == RMALLOC_OK) {
             mm_coalesce(p_prev_block_head, PREV);
         }
