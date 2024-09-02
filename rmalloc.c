@@ -24,9 +24,9 @@
 #define GET_PREV_BLOCK(head)            (head - GET_BLOCK_SIZE(GET_PREV_BLOCK_TAIL(head)))
 
 typedef enum COALESCE_DIRECTION {
-    NEXT,
-    PREV,
-    BOTH,
+    NEXT = 0x1,
+    PREV = 0x2,
+    BOTH = 0x3,
 } COALESCE_DIRECTION;
 
 static unsigned char *p_arena_start = NULL;
@@ -152,17 +152,12 @@ void mm_coalesce(unsigned char *p, COALESCE_DIRECTION direction) {
     unsigned char *p_next_block_head = NULL;
     unsigned char *p_prev_block_head = NULL;
 
-    switch (direction) {
-        case NEXT:
-            p_next_block_head = GET_NEXT_BLOCK(p);
-            break;
-        case PREV:
-            p_prev_block_head = GET_PREV_BLOCK(p);
-            break;
-        case BOTH:
-            p_next_block_head = GET_NEXT_BLOCK(p);
-            p_prev_block_head = GET_PREV_BLOCK(p);
-            break;
+    if (direction & NEXT) {
+        p_next_block_head = GET_NEXT_BLOCK(p);
+    }
+
+    if (direction & PREV) {
+        p_prev_block_head = GET_PREV_BLOCK(p);
     }
 
     if (p_arena_end <= p_next_block_head || (p_next_block_head && IS_BLOCK_BOUNDARY(p_next_block_head)) || p == p_next_block_head) {
