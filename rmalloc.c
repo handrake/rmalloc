@@ -92,7 +92,6 @@ int allocate_block_if_available(unsigned int **p, unsigned char *p_block_head, s
 
 int find_free_block(unsigned int **p, size_t size) {
     unsigned char *p_block_head = p_last_allocated_block_start != NULL ? p_last_allocated_block_start : p_arena_start;
-    unsigned char *p_block_tail;
     size_t new_size = next_power_of_2(size + BLOCK_META_SIZE);
 
     for (int i = 0; p_block_head < p_arena_end; i++) {
@@ -107,16 +106,14 @@ int find_free_block(unsigned int **p, size_t size) {
         return RMALLOC_NOMEM;
     }
 
-    p_block_tail = GET_PREV_BLOCK_TAIL(p_last_allocated_block_start);
-    p_block_head = p_last_allocated_block_start - GET_BLOCK_SIZE(p_block_tail);
+    p_block_head = GET_PREV_BLOCK(p_last_allocated_block_start);
 
     for (int i = 0; p_arena_start < p_block_head; i++) {
         if (allocate_block_if_available(p, p_block_head, new_size) == RMALLOC_OK) {
             return RMALLOC_OK;
         }
 
-        p_block_tail = GET_PREV_BLOCK_TAIL(p_block_head);
-        p_block_head -= GET_BLOCK_SIZE(p_block_tail);
+        p_block_head = GET_PREV_BLOCK(p_block_head);
     }
 
     return RMALLOC_NOMEM;
